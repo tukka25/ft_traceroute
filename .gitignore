@@ -2,3 +2,4 @@
 *.a
 *ft_ping
 venv/
+.vscode/
