@@ -8,7 +8,7 @@ int main(int ac, char **av)
 	{
 		setup(&tracert);
 		input_parsing(av, &tracert);
-		// packet_send(&tracert);
+		packet_send(&tracert);
 		return (0);
 	}
 	print_usage();

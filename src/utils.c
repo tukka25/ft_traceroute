@@ -45,3 +45,38 @@ void print_usage()
 	printf("  ft_traceroute google.com\n");
 	printf("  ft_traceroute --help\n\n");
 }
+
+float	get_minimum(t_traceroute *tracert)
+{
+	float	min;
+	int		i;
+
+	i = 1;
+	if (!tracert->timings || tracert->index == 0)
+		return (0);
+	min = tracert->timings[0];
+	while (i < tracert->index)
+	{
+		if (tracert->timings[i] < min)
+			min = tracert->timings[i];
+		i++;
+	}
+	return (min);
+}
+
+float	get_average(t_traceroute *tracert)
+{
+	float	avg;
+	int		i;
+
+	i = 0;
+	avg = 0;
+	while (i < tracert->index)
+	{
+		avg += tracert->timings[i];
+		i++;
+	}
+	if (avg == 0)
+		return (0);
+	return (avg / tracert->index);
+}

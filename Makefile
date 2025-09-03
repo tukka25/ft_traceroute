@@ -9,7 +9,11 @@ AR = /usr/bin/ar
 
 SRCS =	src/main.c \
 		src/utils.c \
-		src/validation.c 
+		src/utils2.c \
+		src/validation.c \
+		src/packet.c \
+		src/packet_utils.c \
+		src/packet_utils2.c 
 
 CFLAGS = -Wall -Wextra -Werror
 
