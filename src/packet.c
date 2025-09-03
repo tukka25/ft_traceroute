@@ -18,6 +18,7 @@ int	create_socket(t_traceroute *tracert)
 void	next_traceroute_setup(t_traceroute *tracert)
 {
 	usleep(1000000);
+	tracert->ttl++;
 	tracert->seq++;
 	tracert->icmp->un.echo.sequence = htons(tracert->seq);
 	tracert->icmp->checksum = 0;
@@ -102,21 +103,25 @@ void	handle_send(t_traceroute *tracert, t_packet *packet)
 			(struct sockaddr *)&tracert->sockadd,
 			(unsigned int *restrict) & tracert->addr_len);
 	// printf("recv_f = %d , buffer = %s, strlen =%zu\n", tracert->recv_f, tracert->buffer, strlen(tracert->buffer));
-	perror("recvfrom");
-	for (int i = 0; i < tracert->recv_f; i++) {
-    	printf("%02x ", (unsigned char)tracert->buffer[i]);
-	}
-	printf("\n");
-	printf("ip = %s\n", tracert->ip_rep);
+	// perror("recvfrom");
+	// printf("\n");
+	// printf("ip = %s\n", tracert->ip_rep);
 	tracert->ip_reply = (struct iphdr *)tracert->buffer;
 	tracert->icmp_reply = (struct icmphdr *)(tracert->buffer + sizeof(struct iphdr));
-	printf("IP header length: %d bytes\n", tracert->ip_reply->ihl * 4);
-	printf("TTL: %d\n", tracert->ip_reply->ttl);
-	printf("Protocol: %d\n", tracert->ip_reply->protocol);
+	// printf("IP header length: %d bytes\n", tracert->ip_reply->ihl * 4);
+	// printf("TTL: %d\n", tracert->ip_reply->ttl);
+	// struct in_addr addr;
+	// addr.s_addr = tracert->ip_reply->daddr;
+	// char *ip_string = inet_ntoa(addr);
+	// printf("IP DADDR: %s\n", ip_string);
+	// addr.s_addr = tracert->ip_reply->saddr;
+	// ip_string = inet_ntoa(addr);
+	// printf("IP SADDR: %s\n", ip_string);
+	// printf("Protocol: %d\n", tracert->ip_reply->protocol);
 
-	printf("ICMP type = %d\n", tracert->icmp_reply->type);
-	printf("ICMP code = %d\n", tracert->icmp_reply->code);
-	printf("ICMP checksum = %x\n", ntohs(tracert->icmp_reply->checksum));
+	// printf("ICMP type = %d\n", tracert->icmp_reply->type);
+	// printf("ICMP code = %d\n", tracert->icmp_reply->code);
+	// printf("ICMP checksum = %x\n", ntohs(tracert->icmp_reply->checksum));
 
 	gettimeofday(&packet->stop, NULL);
 	if (tracert->recv_f > 0)
@@ -125,8 +130,9 @@ void	handle_send(t_traceroute *tracert, t_packet *packet)
 					+ (packet->stop.tv_usec / 1000)) - ((packet->start.tv_sec
 						* 1000) + (packet->start.tv_usec / 1000)));
 		tracert->recieved_packets += 1;
-		packet_reply_printing(tracert->icmp_reply->type, tracert->recv_f,
-			tracert->elapsed_time, tracert);
+		add_timing(tracert->elapsed_time, tracert);
+		// packet_reply_printing(tracert->icmp_reply->type, tracert->recv_f,
+		// 	tracert->elapsed_time, tracert);
 	}
 }
 
@@ -138,11 +144,16 @@ void	packet_send(t_traceroute *tracert)
 	init_packet_send(tracert, &packet);
 	while (i < 1)
 	{
-		gettimeofday(&packet.start, NULL);
-		tracert->sendt = sendto(tracert->sockfd, tracert->packet, tracert->packet_size, 0,
+		for (int hit = 0; hit < 3; hit++)
+		{
+			gettimeofday(&packet.start, NULL);
+			tracert->sendt = sendto(tracert->sockfd, tracert->packet, tracert->packet_size, 0,
 				(struct sockaddr *)&tracert->sockadd, sizeof(struct sockaddr));
-		if (tracert->sendt > 0)
-			handle_send(tracert, &packet);
+			if (tracert->sendt > 0)
+				handle_send(tracert, &packet);
+		}
+		packet_reply_printing(0, 0, 0, tracert);
+		ft_bzero(tracert->timings, sizeof(tracert->timings));
 		next_traceroute_setup(tracert);
 		i++;
 	}

@@ -9,6 +9,7 @@ void setup(t_traceroute *tracert)
 
 	ft_bzero(tracert, sizeof(t_traceroute));
 	tracert->flags_options = ft_darray_copy(s);
+	tracert->ttl = 1;
 	if (!tracert->flags_options)
 		error_handle(EXIT_FAILURE, "Error: Failed to copy flags options", tracert);
 }

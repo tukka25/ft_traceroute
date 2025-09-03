@@ -57,6 +57,7 @@ typedef struct s_traceroute
 	struct sockaddr_in	sockadd;
 	size_t				packet_size;
 	char				*buffer;
+	int					ttl;
 	float				*timings;
 	int					index;
 	int					yes;

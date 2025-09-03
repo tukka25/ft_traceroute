@@ -82,20 +82,44 @@ void	packet_reply_printing(int type, int recv_f, float elapsed_time,
 		t_traceroute *tracert)
 {
 	struct in_addr	src_addr;
+	int counter;
+	(void) type;
+	(void) recv_f;
+	(void) elapsed_time;
 
+	counter = 0;
 	src_addr.s_addr = tracert->ip_reply->saddr;
 	if (type == 3)
+	{
 		printf("Destination Unreachable\n");
+	}
 	else if (type == 5)
+	{
 		printf("Redirect\n");
-	else if (type == 11)
-		printf("%ld bytes from %s: Time to live exceeded\n", recv_f
-			- sizeof(struct iphdr), inet_ntoa(src_addr));
+	// else if (type == 11)
+	// 	printf("%ld bytes from %s: Time to live exceeded\n", recv_f
+	// 		- sizeof(struct iphdr), inet_ntoa(src_addr));
+	}
 	else if (type == 12)
+	{
 		printf("Parameter Problem\n");
+	}
 	else
-		printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.3lf ms\n", recv_f
-			- sizeof(struct iphdr), inet_ntoa(src_addr), tracert->seq,
-			tracert->ip_reply->ttl, elapsed_time);
-	add_timing(elapsed_time, tracert);
+	{
+		printf("%d ", tracert->ttl);
+		printf("%s (%s) ", inet_ntoa(src_addr), inet_ntoa(src_addr));
+		while (counter < 3 && tracert->timings[counter])
+		{
+			if (tracert->timings[counter])
+				printf("%.3lf ms ", tracert->timings[counter]);
+			else
+				printf("* ");
+			counter++;
+		}
+	}
+	// else
+	// 	printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.3lf ms\n", recv_f
+	// 		- sizeof(struct iphdr), inet_ntoa(src_addr), tracert->seq,
+	// 		tracert->ip_reply->ttl, elapsed_time);
+	// add_timing(elapsed_time, tracert);
 }

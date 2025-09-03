@@ -61,7 +61,7 @@ void	ip_icmp_initialization(struct iphdr *ip, struct icmphdr *icmp,
 {
 	ip->version = 4;
 	ip->tot_len = packet_size;
-	ip->ttl = 1;
+	ip->ttl = tracert->ttl;
 	ip->protocol = IPPROTO_ICMP;
 	ip->daddr = inet_addr(tracert->ip_rep);
 	ip->ihl = 5;
