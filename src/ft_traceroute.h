@@ -45,6 +45,8 @@ typedef struct s_traceroute
 	float				elapsed_time;
 	int					sendt;
 	int					sockfd;
+	int					hit;
+	unsigned int		prev_station;
 	int					addr_len;
 	struct icmphdr		*icmp_reply;
 	char				*dest_ip;
@@ -87,16 +89,15 @@ void	ip_icmp_initialization(struct iphdr *ip, struct icmphdr *icmp,
 		t_traceroute *tracert, size_t packet_size);
 void	setting_options(t_traceroute *tracert);
 void	init_packet_memory(t_traceroute *tracert);
-void	final_printing_exit(struct timeval *stop, struct timeval *start,
-		t_traceroute *tracert, int sockfd);
+void	clean_and_exit(t_traceroute *tracert);
 float	get_maximum(t_traceroute *tracert);
 float	get_mdev(t_traceroute *tracert);
 char	*convert_domain_to_ip(char *domain, t_traceroute *tracert);
 void	flag_options_printing(t_traceroute *tracert);
-void	packet_reply_printing(int type, int recv_f, float elapsed_time,
-		t_traceroute *tracert);
+void	packet_reply_printing(t_traceroute *tracert);
 float	get_average(t_traceroute *tracert);
 float	get_minimum(t_traceroute *tracert);
+char	*convert_ip_to_domain(char *ip);
 
 
 

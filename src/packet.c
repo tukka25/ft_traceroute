@@ -17,13 +17,23 @@ int	create_socket(t_traceroute *tracert)
 
 void	next_traceroute_setup(t_traceroute *tracert)
 {
-	usleep(1000000);
-	tracert->ttl++;
+	struct in_addr	src_addr;
+
+	src_addr.s_addr = tracert->ip->daddr;
+	// usleep(1000000);
+	tracert->ip->ttl = ++tracert->ttl;
 	tracert->seq++;
 	tracert->icmp->un.echo.sequence = htons(tracert->seq);
 	tracert->icmp->checksum = 0;
 	tracert->icmp->checksum = calculate_checksum((unsigned short *)tracert->icmp,
 			sizeof(struct icmphdr));
+	// printf("next daddr = %s\n", inet_ntoa(src_addr));
+	// printf("ip_rep = %s\n,ip_reply = %s", tracert->ip_rep, inet_ntoa(src_addr));
+	// if (tracert->ip_rep == inet_ntoa(src_addr))
+	// {
+	// 	printf("Reached To %s\n", tracert->ip_rep);
+	// 	g_is_running = 0;
+	// }
 }
 
 void	init_packet_send(t_traceroute *tracert, t_packet *packet)
@@ -97,8 +107,11 @@ void	init_packet_send(t_traceroute *tracert, t_packet *packet)
 
 void	handle_send(t_traceroute *tracert, t_packet *packet)
 {
+
 	tracert->transmitted_packets += 1;
 	tracert->addr_len = sizeof(tracert->sockadd);
+	if (tracert->hit != 0)
+		tracert->prev_station = tracert->ip_reply->saddr;
 	tracert->recv_f = recvfrom(tracert->sockfd, tracert->buffer, tracert->packet_size, 0,
 			(struct sockaddr *)&tracert->sockadd,
 			(unsigned int *restrict) & tracert->addr_len);
@@ -108,6 +121,7 @@ void	handle_send(t_traceroute *tracert, t_packet *packet)
 	// printf("ip = %s\n", tracert->ip_rep);
 	tracert->ip_reply = (struct iphdr *)tracert->buffer;
 	tracert->icmp_reply = (struct icmphdr *)(tracert->buffer + sizeof(struct iphdr));
+
 	// printf("IP header length: %d bytes\n", tracert->ip_reply->ihl * 4);
 	// printf("TTL: %d\n", tracert->ip_reply->ttl);
 	// struct in_addr addr;
@@ -124,39 +138,67 @@ void	handle_send(t_traceroute *tracert, t_packet *packet)
 	// printf("ICMP checksum = %x\n", ntohs(tracert->icmp_reply->checksum));
 
 	gettimeofday(&packet->stop, NULL);
-	if (tracert->recv_f > 0)
-	{
-		tracert->elapsed_time = (((packet->stop.tv_sec * 1000)
+	tracert->elapsed_time = (((packet->stop.tv_sec * 1000)
 					+ (packet->stop.tv_usec / 1000)) - ((packet->start.tv_sec
 						* 1000) + (packet->start.tv_usec / 1000)));
-		tracert->recieved_packets += 1;
-		add_timing(tracert->elapsed_time, tracert);
-		// packet_reply_printing(tracert->icmp_reply->type, tracert->recv_f,
-		// 	tracert->elapsed_time, tracert);
-	}
+	tracert->recieved_packets += 1;
+	packet_reply_printing(tracert);
+	// if (tracert->recv_f > 0)
+	// {
+	// 	tracert->elapsed_time = (((packet->stop.tv_sec * 1000)
+	// 				+ (packet->stop.tv_usec / 1000)) - ((packet->start.tv_sec
+	// 					* 1000) + (packet->start.tv_usec / 1000)));
+	// 	tracert->recieved_packets += 1;
+	// 	// add_timing(tracert->elapsed_time, tracert);
+	// 	// packet_reply_printing(tracert->icmp_reply->type, tracert->recv_f,
+	// 	// 	tracert->elapsed_time, tracert);
+	// }
 }
+
+// static void print_timings(t_traceroute *ping)
+// {
+//     if (!ping->timings || ping->index <= 0)
+//     {
+//         printf("No timings available\n");
+//         return;
+//     }
+    
+//     printf("Timings array (%d entries):\n", ping->index);
+//     for (int i = 0; i < ping->index; i++)
+//     {
+//         printf("  [%d]: %.3f ms\n", i, ping->timings[i]);
+//     }
+// }
 
 void	packet_send(t_traceroute *tracert)
 {
 	t_packet	packet;
-    int i = 0;
 
+	tracert->hit = 0;
 	init_packet_send(tracert, &packet);
-	while (i < 1)
+	printf("ft_traceroute to %s (%s), 30 hops max, 60 bytes packets\n", tracert->dest_ip , tracert->ip_rep);
+	while (g_is_running)
 	{
-		for (int hit = 0; hit < 3; hit++)
+		// printf("ttl = %d\n", tracert->ip->ttl);
+		while (tracert->hit < 3)
 		{
 			gettimeofday(&packet.start, NULL);
 			tracert->sendt = sendto(tracert->sockfd, tracert->packet, tracert->packet_size, 0,
 				(struct sockaddr *)&tracert->sockadd, sizeof(struct sockaddr));
 			if (tracert->sendt > 0)
 				handle_send(tracert, &packet);
+			tracert->hit++;
 		}
-		packet_reply_printing(0, 0, 0, tracert);
-		ft_bzero(tracert->timings, sizeof(tracert->timings));
+		printf("\n");
+		// printf("--- before ---");
+		// print_timings(tracert);
+		// printf("--- after ---");
+		// print_timings(tracert);
+		// ft_bzero(tracert->timings, sizeof(tracert->timings));
+		tracert->index = 0;
+		tracert->hit = 0;
 		next_traceroute_setup(tracert);
-		i++;
 	}
 	gettimeofday(&packet.stop_total, NULL);
-	final_printing_exit(&packet.stop, &packet.start, tracert, tracert->sockfd);
+	clean_and_exit(tracert);
 }

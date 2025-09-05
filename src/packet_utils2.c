@@ -12,32 +12,19 @@
 
 #include "ft_traceroute.h"
 
-void	final_printing_exit(struct timeval *stop, struct timeval *start,
-		t_traceroute *tracert, int sockfd)
+void	clean_and_exit(t_traceroute *tracert)
 {
-	int		total_time;
-	float	loss_p;
 
-	total_time = (((stop->tv_sec * 1000) + (stop->tv_usec / 1000))
-			- ((start->tv_sec * 1000) + (start->tv_usec / 1000)));
-	loss_p = 100.0 - (((float)tracert->recieved_packets
-				/ tracert->transmitted_packets) * 100.0);
-	printf("\n--- %s ft_traceroute statistics ---\n", tracert->dest_ip);
-	printf("%d packets transmitted, %d received, %0.4f%% packet loss, time "
-		"%d ms\n", tracert->transmitted_packets, tracert->recieved_packets, loss_p,
-		total_time);
-	printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n", get_minimum(tracert),
-		get_average(tracert), get_maximum(tracert), get_mdev(tracert));
 	free(tracert->timings);
 	free(tracert->buffer);
 	free(tracert->packet);
-	close(sockfd);
+	close(tracert->sockfd);
 	error_handle(EXIT_SUCCESS, "", tracert);
 }
 
 void	init_packet_memory(t_traceroute *tracert)
 {
-	tracert->packet_size = sizeof(struct iphdr) + sizeof(struct icmphdr) + 56;
+	tracert->packet_size = sizeof(struct iphdr) + sizeof(struct icmphdr) + 32;
 	tracert->packet = ft_calloc(1, tracert->packet_size + 1);
 	if (!tracert->packet)
 		packet_failure(tracert, "Error: Failed to allocate memory for packet");
@@ -67,4 +54,31 @@ void	setting_options(t_traceroute *tracert)
 	if (setsockopt(tracert->sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
 			sizeof timeout) < 0)
 		packet_failure(tracert, "Error: Failed to set socket options");
+}
+
+char	*convert_ip_to_domain(char *ip)
+{
+	struct sockaddr_in sa;
+    char *hostname;
+    int res;
+
+    if (inet_pton(AF_INET, ip, &(sa.sin_addr)) <= 0) {
+        perror("inet_pton failed");
+        return NULL;
+    }
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(0);
+	hostname = malloc(NI_MAXHOST);
+	if (!hostname)
+		return NULL;
+    res = getnameinfo((struct sockaddr *)&sa, sizeof(sa),
+                      hostname, NI_MAXHOST,
+                      NULL, 0, NI_NAMEREQD);
+
+    if (res == 0) {
+        return hostname;
+    } else {
+        fprintf(stderr, "getnameinfo failed: %s\n", gai_strerror(res));
+        return NULL;
+    }
 }

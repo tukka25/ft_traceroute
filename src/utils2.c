@@ -78,48 +78,48 @@ void	flag_options_printing(t_traceroute *tracert)
 	}
 }
 
-void	packet_reply_printing(int type, int recv_f, float elapsed_time,
-		t_traceroute *tracert)
+void	packet_reply_printing(t_traceroute *tracert)
 {
 	struct in_addr	src_addr;
-	int counter;
-	(void) type;
-	(void) recv_f;
-	(void) elapsed_time;
+	struct in_addr	prev_src_addr;
+	char *ip_domain;
 
-	counter = 0;
-	src_addr.s_addr = tracert->ip_reply->saddr;
-	if (type == 3)
+	if (tracert->icmp_reply->type == 0 || tracert->ttl >= 30)
 	{
-		printf("Destination Unreachable\n");
+		// printf("done");
+		g_is_running = 0;
 	}
-	else if (type == 5)
+	else if (tracert->recv_f > 0)
 	{
-		printf("Redirect\n");
-	// else if (type == 11)
-	// 	printf("%ld bytes from %s: Time to live exceeded\n", recv_f
-	// 		- sizeof(struct iphdr), inet_ntoa(src_addr));
-	}
-	else if (type == 12)
-	{
-		printf("Parameter Problem\n");
-	}
-	else
-	{
-		printf("%d ", tracert->ttl);
-		printf("%s (%s) ", inet_ntoa(src_addr), inet_ntoa(src_addr));
-		while (counter < 3 && tracert->timings[counter])
+		src_addr.s_addr = tracert->ip_reply->saddr;
+		prev_src_addr.s_addr = tracert->prev_station;
+		if (tracert->hit == 0)
 		{
-			if (tracert->timings[counter])
-				printf("%.3lf ms ", tracert->timings[counter]);
-			else
-				printf("* ");
-			counter++;
+			printf("%d ", tracert->ttl);
+			// ip_domain = convert_ip_to_domain(inet_ntoa(src_addr));
+			// if (ip_domain == NULL)
+			ip_domain = inet_ntoa(src_addr);
+			printf("%s (%s) ", ip_domain, inet_ntoa(src_addr));
+			printf("%.3lf ms ", tracert->elapsed_time);
+			
 		}
+		else
+		{
+			if (inet_ntoa(src_addr) == inet_ntoa(prev_src_addr))
+			{
+				printf("%.3lf ms ", tracert->elapsed_time);
+			}
+			else
+			{
+				printf("%s (%s) ", inet_ntoa(src_addr), inet_ntoa(src_addr));
+				printf("%.3lf ms ", tracert->elapsed_time);
+			}
+		}
+
 	}
-	// else
-	// 	printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.3lf ms\n", recv_f
-	// 		- sizeof(struct iphdr), inet_ntoa(src_addr), tracert->seq,
-	// 		tracert->ip_reply->ttl, elapsed_time);
-	// add_timing(elapsed_time, tracert);
+	else if (tracert->recv_f < 0)
+	{
+		printf("* ");
+	}
+	// usleep(100);
 }
